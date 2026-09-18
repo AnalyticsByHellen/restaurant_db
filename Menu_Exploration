@@ -1,0 +1,86 @@
+-- MENU EXPLORATION
+-- How many menu items are there?
+SELECT COUNT(*) AS total_menu_items
+FROM menu_items;
+
+-- How many different food categories are there?
+SELECT COUNT(DISTINCT category) AS total_categories
+FROM menu_items;
+
+-- What are the different categories?
+SELECT DISTINCT category
+FROM menu_items
+ORDER BY category;
+
+-- How many menu items are in each category?
+SELECT
+    category,
+    COUNT(*) AS menu_item_count
+FROM menu_items
+GROUP BY category
+ORDER BY menu_item_count DESC;
+
+-- What is the cheapest menu item?
+SELECT
+    item_name,
+    price,
+    Category
+FROM menu_items
+ORDER BY price ASC
+LIMIT 1;
+
+-- What is the Expensive menu item?
+SELECT
+    item_name,
+    price,
+    category
+FROM menu_items
+ORDER BY price DESC
+LIMIT 1;
+
+-- What is the average price of all menu items?
+SELECT
+    ROUND(AVG(price), 2) AS average_menu_price
+FROM menu_items;
+
+-- What is the average price by category?
+SELECT
+Category,
+ ROUND(AVG(price), 2) AS average_price
+ FROM menu_items
+ GROUP BY category
+ ORDER BY average_price DESC;
+ 
+ -- Which category has the highest average price?
+ SELECT
+Category,
+ ROUND(AVG(price), 2) AS average_price
+ FROM menu_items
+ GROUP BY category
+ ORDER BY average_price DESC
+ LIMIT  1 ;
+ 
+ -- Which category has the lowest average price?
+  SELECT
+Category,
+ ROUND(AVG(price), 2) AS average_price
+ FROM menu_items
+ GROUP BY category
+ ORDER BY average_price ASC
+ LIMIT  1 ;
+ 
+ -- Which menu items cost more than the overall average menu price?
+ SELECT
+    item_name,
+    price,
+    category
+ FROM menu_items
+WHERE price > 13.29
+ORDER BY price ;
+
+-- Rank all menu items from most expensive to cheapest
+SELECT
+    item_name,
+    price,
+    RANK() OVER (ORDER BY price DESC) AS price_rank
+FROM menu_items;
