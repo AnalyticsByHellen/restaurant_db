@@ -1,0 +1,466 @@
+-- RANKING
+-- Rank all menu items by number of times ordered.
+SELECT 
+mi.item_name,
+COUNT(*) AS timesordererd,
+RANK() OVER( ORDER BY COUNT(*) DESC) AS orderedrank
+FROM order_details od
+  JOIN menu_items mi
+ON mi.menu_item_id = od.order_id
+GROUP BY mi.item_name
+ORDER BY orderedrank;
+
+-- Rank all menu items by revenue.
+SELECT 
+mi.item_name,
+SUM(mi.price) AS totalrevenue,
+RANK() OVER( ORDER BY SUM(mi.price)  DESC) AS totalrevenue
+FROM order_details od
+  JOIN menu_items mi
+ON mi.menu_item_id = od.order_id
+GROUP BY mi.item_name
+ORDER BY totalrevenue;
+
+-- Rank menu items within each category by revenue
+SELECT
+    mi.category,
+    mi.item_name,
+    SUM(mi.price) AS total_revenue,
+    RANK() OVER (
+        PARTITION BY mi.category
+        ORDER BY SUM(mi.price) DESC
+    ) AS category_revenue_rank
+FROM order_details od
+JOIN menu_items mi
+    ON od.item_id = mi.menu_item_id
+GROUP BY
+    mi.category,
+    mi.item_name
+ORDER BY
+    mi.category,
+    category_revenue_rank;
+    
+-- Find the top 3 menu items in each category
+WITH ranked_items AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue,
+        RANK() OVER (
+            PARTITION BY mi.category
+            ORDER BY SUM(mi.price) DESC
+        ) AS category_rank
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+)
+SELECT
+    category,
+    item_name,
+    total_revenue,
+    category_rank
+FROM ranked_items
+WHERE category_rank <= 3
+ORDER BY category, category_rank;
+    
+-- Find the bottom 3 menu items in each category
+WITH ranked_items AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue,
+        RANK() OVER (
+            PARTITION BY mi.category
+            ORDER BY SUM(mi.price) ASC
+        ) AS category_rank
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+)
+SELECT
+    category,
+    item_name,
+    total_revenue,
+    category_rank
+FROM ranked_items
+WHERE category_rank <= 3
+ORDER BY category, category_rank;
+
+-- Top 5 menu items overall by revenue
+SELECT
+    mi.item_name,
+    SUM(mi.price) AS total_revenue,
+    RANK() OVER (
+        ORDER BY SUM(mi.price) DESC
+    ) AS category_revenue_rank
+FROM order_details od
+JOIN menu_items mi
+    ON od.item_id = mi.menu_item_id
+GROUP BY
+     mi.item_name
+ORDER BY category_revenue_rank 
+LIMIT 5;
+
+-- Top 5 menu items overall by quantity sold
+SELECT
+    mi.item_name,
+    COUNT(*) AS total_quantity,
+    RANK() OVER (
+        ORDER BY COUNT(*) DESC
+    ) AS quantity_rank
+FROM order_details od
+JOIN menu_items mi
+    ON od.item_id = mi.menu_item_id
+GROUP BY
+     mi.item_name
+ORDER BY quantity_rank 
+LIMIT 5;
+
+-- Which menu items are in the top 10% by revenue?
+WITH ranked_items AS (
+    SELECT
+        mi.item_name,
+        SUM(mi.price) AS total_revenue,
+        NTILE(10) OVER (
+            ORDER BY SUM(mi.price) DESC
+        ) AS revenue_decile
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY mi.item_name
+)
+
+SELECT
+    item_name,
+    total_revenue
+FROM ranked_items
+WHERE revenue_decile = 1
+ORDER BY total_revenue DESC;
+
+-- Second-highest revenue-generating menu item
+SELECT
+mi.item_name,
+SUM(mi.price)  AS total_revenue
+ FROM order_details od
+ JOIN menu_items mi
+ ON mi.menu_item_id = od.order_details_id
+GROUP BY item_name
+ORDER BY total_revenue DESC
+LIMIT 1 OFFSET 1;
+
+-- second distinct-highest revenue, u
+WITH item_revenue AS (
+    SELECT
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY mi.item_name
+),
+ranked_items AS (
+    SELECT
+        item_name,
+        total_revenue,
+        DENSE_RANK() OVER (
+            ORDER BY total_revenue DESC
+        ) AS revenue_rank
+    FROM item_revenue
+)
+SELECT *
+FROM ranked_items
+WHERE revenue_rank = 2;
+
+-- Third-highest revenue-generating menu item
+WITH item_revenue AS (
+    SELECT
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY mi.item_name
+),
+ranked_items AS (
+    SELECT
+        item_name,
+        total_revenue,
+        DENSE_RANK() OVER (
+            ORDER BY total_revenue DESC
+        ) AS revenue_rank
+    FROM item_revenue
+)
+SELECT *
+FROM ranked_items
+WHERE revenue_rank = 3;
+
+-- Highest-revenue item in each category
+WITH item_revenue AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+),
+ranked_items AS (
+    SELECT
+        category,
+        item_name,
+        total_revenue,
+        RANK() OVER (
+            PARTITION BY category
+            ORDER BY total_revenue DESC
+        ) AS revenue_rank
+    FROM item_revenue
+)
+SELECT *
+FROM ranked_items
+WHERE revenue_rank = 1
+ORDER BY category;
+
+-- Second-highest-revenue item in each category
+WITH item_revenue AS (
+    SELECT
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY mi.item_name
+),
+ranked_items AS (
+    SELECT
+        item_name,
+        total_revenue,
+        DENSE_RANK() OVER (
+            ORDER BY total_revenue DESC
+        ) AS revenue_rank
+    FROM item_revenue
+)
+SELECT *
+FROM ranked_items
+WHERE revenue_rank = 3;
+
+-- Highest-revenue item in each category
+WITH item_revenue AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+),
+ranked_items AS (
+    SELECT
+        category,
+        item_name,
+        total_revenue,
+        RANK() OVER (
+            PARTITION BY category
+            ORDER BY total_revenue DESC
+        ) AS revenue_rank
+    FROM item_revenue
+)
+SELECT *
+FROM ranked_items
+WHERE revenue_rank = 2
+ORDER BY category;
+
+-- Each day's highest-revenue menu item
+WITH daily_item_revenue AS (
+    SELECT
+        od.order_date,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        od.order_date,
+        mi.item_name
+),
+ranked_items AS (
+    SELECT
+        order_date,
+        item_name,
+        total_revenue,
+        RANK() OVER (
+            PARTITION BY order_date
+            ORDER BY total_revenue DESC
+        ) AS revenue_rank
+    FROM daily_item_revenue
+)
+SELECT *
+FROM ranked_items
+WHERE revenue_rank = 1
+ORDER BY order_date;
+
+-- Percentage difference between each item's revenue and its category's average revenue
+WITH item_revenue AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+),
+category_average AS (
+    SELECT
+        category,
+        AVG(total_revenue) AS avg_category_revenue
+    FROM item_revenue
+    GROUP BY category
+)
+SELECT
+    ir.category,
+    ir.item_name,
+    ir.total_revenue,
+    ca.avg_category_revenue,
+    ROUND(
+        ((ir.total_revenue - ca.avg_category_revenue)
+        / ca.avg_category_revenue) * 100,
+        2
+    ) AS percentage_difference
+FROM item_revenue ir
+JOIN category_average ca
+    ON ir.category = ca.category
+ORDER BY percentage_difference DESC;
+
+-- Items whose sales are above the average sales of their category
+WITH item_sales AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        COUNT(*) AS total_sales
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+),
+category_average AS (
+    SELECT
+        category,
+        AVG(total_sales) AS avg_category_sales
+    FROM item_sales
+    GROUP BY category
+)
+SELECT
+    s.category,
+    s.item_name,
+    s.total_sales,
+    ca.avg_category_sales
+FROM item_sales s
+JOIN category_average ca
+    ON s.category = ca.category
+WHERE s.total_sales > ca.avg_category_sales
+ORDER BY s.category, s.total_sales DESC;
+
+-- Items whose price is above their category's average price
+WITH category_average AS (
+    SELECT
+        category,
+      ROUND ( AVG(price),2) AS avg_category_price
+    FROM menu_items
+    GROUP BY category
+)
+SELECT
+    mi.item_name,
+    mi.category,
+    mi.price,
+    ca.avg_category_price
+FROM menu_items mi
+JOIN category_average ca
+    ON mi.category = ca.category
+WHERE mi.price > ca.avg_category_price
+ORDER BY mi.category, mi.price DESC;
+
+-- Revenue rank within category AND overall revenue rank
+WITH item_revenue AS (
+    SELECT
+        mi.category,
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY
+        mi.category,
+        mi.item_name
+)
+SELECT
+    category,
+    item_name,
+    total_revenue,
+
+    RANK() OVER (
+        PARTITION BY category
+        ORDER BY total_revenue DESC
+    ) AS category_rank,
+
+    RANK() OVER (
+        ORDER BY total_revenue DESC
+    ) AS overall_rank
+
+FROM item_revenue
+ORDER BY overall_rank;
+
+-- Top 3 menu items that contribute to at least 50% of total revenue
+WITH item_revenue AS (
+    SELECT
+        mi.item_name,
+        SUM(mi.price) AS total_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY mi.item_name
+),
+revenue_with_total AS (
+    SELECT
+        item_name,
+        total_revenue,
+        SUM(total_revenue) OVER () AS overall_revenue
+    FROM item_revenue
+),
+cumulative_revenue AS (
+    SELECT
+        item_name,
+        total_revenue,
+        overall_revenue,
+        SUM(total_revenue) OVER (
+            ORDER BY total_revenue DESC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS cumulative_revenue
+    FROM revenue_with_total
+)
+SELECT
+    item_name,
+    total_revenue,
+    ROUND(
+        cumulative_revenue / overall_revenue * 100,
+        2
+    ) AS cumulative_revenue_percentage
+FROM cumulative_revenue
+WHERE cumulative_revenue / overall_revenue <= 0.50
+ORDER BY total_revenue DESC
+LIMIT 3;
