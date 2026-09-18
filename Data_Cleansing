@@ -1,0 +1,125 @@
+-- DATA CLEANING
+SELECT *
+FROM restaurant_db.menu_items;
+ 
+ SELECT *
+FROM restaurant_db.order_details;
+
+-- How many records are in menu-items and order details?
+SELECT 
+COUNT(menu_item_id)
+FROM restaurant_db.menu_items;
+
+SELECT 
+ COUNT(order_details_id)
+FROM restaurant_db.order_details;
+
+-- NULL VALUES COLUMNS  IN BOTH order_details AND menu_items ( CHECKING FOR ALL COLUMNS)
+SELECT *
+FROM order_details
+WHERE item_id  IS NULL;
+
+SELECT *
+FROM menu_items
+WHERE item_name IS NULL;
+
+
+-- CHECKING FOR DUPLICATES 
+-- a) order_details_id (No duplicates its a primary key)
+SELECT DISTINCT order_details_id
+FROM Order_details;
+SELECT 
+    order_details_id,
+    COUNT(*) AS occurrence_count
+FROM order_details
+GROUP BY order_details_id
+HAVING COUNT(*) > 1;
+
+-- Are there duplicate order_detail + menu_item_id combination ( Iam  checking whether the same order contains the same item more than once)
+SELECT 
+    order_id,
+    item_id,
+    COUNT(*) AS occurrence_count
+FROM order_details
+GROUP BY order_id, item_id
+HAVING COUNT(*) > 1;
+
+-- Are there orders containing the same menu item more than once?
+SELECT DISTINCT
+    order_id
+FROM order_details
+GROUP BY order_id, item_id
+HAVING COUNT(*) > 1;
+
+-- Orders that contain duplicate values ( this is more details than the above query)
+SELECT 
+    order_id,
+    item_id,
+    COUNT(*) AS times_ordered
+FROM order_details
+GROUP BY order_id, item_id
+HAVING COUNT(*) > 1
+ORDER BY order_id;
+ 
+ -- confirming id the order_details_id id unique
+ SELECT 
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT order_details_id) AS unique_order_details_ids
+FROM order_details;
+
+-- ARe there any item_id values in order_detail that dont exist in menu items? (Show me order items that couldn't find a matching menu item.) ( we use joins)
+SELECT DISTINCT
+    od.item_id
+FROM order_details AS od
+LEFT JOIN menu_items AS mi
+    ON od.item_id = mi.menu_item_id
+WHERE od.item_id IS NOT NULL
+  AND mi.menu_item_id IS NULL;
+
+-- Are there any menu items that neve appear in orders details
+SELECT 
+    mi.menu_item_id,
+    mi.item_name
+FROM menu_items AS mi
+LEFT JOIN order_details AS od
+    ON mi.menu_item_id = od.item_id
+WHERE od.item_id IS NULL;
+
+-- Does every order_details.item_id have a corresponding menu_items.menu_item_id?
+SELECT 
+    od.order_details_id,
+    od.order_id,
+    od.item_id,
+    mi.menu_item_id
+FROM order_details AS od
+LEFT JOIN menu_items AS mi
+    ON od.item_id = mi.menu_item_id
+WHERE od.item_id IS NOT NULL
+  AND mi.menu_item_id IS NULL;
+  
+  -- What is the earliest order date
+  SELECT 
+    MIN(order_date) AS earliest_order_date
+FROM order_details;
+
+-- What is the the latest order dta
+ 
+SELECT 
+    MAX(order_date) AS Latest_order_date
+FROM order_details;
+
+-- Orders  with missing order dates
+SELECT *
+FROM order_details
+WHERE order_date IS NULL;
+
+-- Orders with missing order time
+SELECT *
+FROM order_details
+WHERE order_time IS NULL;
+
+-- Are there any orders with missing item_id?
+SELECT *
+FROM order_details
+WHERE item_id IS NULL;
+
