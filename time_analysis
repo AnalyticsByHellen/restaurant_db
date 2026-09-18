@@ -1,0 +1,72 @@
+-- TIME ANALYSIS
+-- What time of day do most orders occur?
+SELECT
+    HOUR (order_time) AS order_hour,
+    COUNT(DISTINCT order_time) AS Timeordersplaced
+ FROM order_details
+ GROUP BY HOUR (order_time)
+ ORDER BY Timeordersplaced DESC;
+
+-- How many orders occur before 12 PM?
+ SELECT
+    COUNT(DISTINCT order_time) AS Timeordersplaced
+ FROM order_details
+ WHERE order_time < '12:00:00';
+ 
+ -- How many orders occur between 12 PM and 3 PM?
+  SELECT
+    COUNT(DISTINCT order_time) AS Timeordersplaced
+ FROM order_details
+ WHERE order_time BETWEEN '12:00:00'AND '15:00:00';
+ 
+ -- How many orders occur between 3 PM and 6 PM?
+  SELECT
+    COUNT(DISTINCT order_time) AS Timeordersplaced
+ FROM order_details
+ WHERE order_time BETWEEN '15:00:00'AND '18:00:00';
+ 
+ -- How many orders occur after 6 PM?
+ SELECT
+    COUNT(DISTINCT order_time) AS Timeordersplaced
+ FROM order_details
+ WHERE order_time >= '18:00:00';
+ 
+ -- Which hour has the highest number of orders?
+ SELECT
+    HOUR (order_time) AS order_hour,
+    COUNT(DISTINCT order_time) AS Timeordersplaced
+ FROM order_details
+ GROUP BY HOUR (order_time)
+ ORDER BY Timeordersplaced DESC
+LIMIT 1 ;
+
+-- Which hour generates the most revenue?
+SELECT
+   HOUR (order_time) AS order_hour,
+    SUM(mi.price) AS totalRevenue
+FROM order_details od
+JOIN menu_items mi
+ON od.item_id = mi.menu_item_id
+GROUP BY HOUR (order_time)
+ORDER BY totalRevenue DESC;
+
+-- What is the average order value by hour?
+WITH order_revenue AS (
+    SELECT
+        od.order_id,
+         HOUR (order_time) AS order_hour,
+        SUM(mi.price) AS order_revenue
+    FROM order_details od
+    JOIN menu_items mi
+        ON od.item_id = mi.menu_item_id
+    GROUP BY od.order_id,
+         HOUR (order_time)
+)
+
+SELECT
+    order_hour,
+    ROUND(AVG(order_revenue), 2) AS average_order_value
+FROM order_revenue
+GROUP BY order_hour
+ORDER BY order_hour;
+
