@@ -1,0 +1,66 @@
+-- DATA EXPLORATION
+-- How many unique orders are there?
+SELECT COUNT(DISTINCT order_id) AS unique_orders
+FROM order_details;
+
+-- How many items were ordered in total
+SELECT 
+item_id,
+order_id
+FROM order_details;
+
+SELECT COUNT(*) AS total_items_ordered
+FROM order_details;
+
+-- What is the average number of items per order?
+SELECT
+    AVG(item_count) AS average_items_per_order
+FROM (
+    SELECT
+        order_id,
+        COUNT(*) AS item_count
+    FROM order_details
+    GROUP BY order_id
+) AS order_counts;
+
+-- What is the smallest number of items in an order
+SELECT
+    MIN(item_count) AS smallest_order
+FROM (
+    SELECT
+        order_id,
+        COUNT(*) AS item_count
+    FROM order_details
+    GROUP BY order_id
+) AS order_counts;
+
+-- What is the largest number of items in an order?
+SELECT
+    MAX(item_count) AS largest_order
+FROM (
+    SELECT
+        order_id,
+        COUNT(*) AS item_count
+    FROM order_details
+    GROUP BY order_id
+) AS order_counts;
+
+-- Which order contains the most items?
+
+SELECT
+    order_id,
+    COUNT(*) AS item_count
+FROM order_details
+GROUP BY order_id
+ORDER BY item_count DESC
+LIMIT 1;
+
+-- Which orders contain 5 or more items? (Top 10)
+SELECT
+    order_id,
+    COUNT(*) AS item_count
+FROM order_details
+GROUP BY order_id
+HAVING COUNT(*) >= 5
+ORDER BY item_count DESC
+LIMIT 10;
